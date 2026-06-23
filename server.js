@@ -1,9 +1,10 @@
 require("dotenv").config();
 
 const express = require("express");
+
 const {
   S3Client,
-  ListBucketsCommand
+  HeadBucketCommand
 } = require("@aws-sdk/client-s3");
 
 const app = express();
@@ -19,14 +20,17 @@ const s3 = new S3Client({
 
 app.get("/", async (req, res) => {
   try {
-    const result = await s3.send(
-      new ListBucketsCommand({})
+    await s3.send(
+      new HeadBucketCommand({
+        Bucket: process.env.SPACES_BUCKET
+      })
     );
 
     res.json({
-      message: "Spaces Connected 🚀",
-      buckets: result.Buckets.map(b => b.Name)
+      success: true,
+      bucket: process.env.SPACES_BUCKET
     });
+
   } catch (err) {
     console.error(err);
 
