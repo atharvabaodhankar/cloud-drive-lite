@@ -6,7 +6,8 @@ const multer = require("multer");
 const {
   S3Client,
   PutObjectCommand,
-  ListObjectsV2Command
+  ListObjectsV2Command,
+  DeleteObjectCommand
 } = require("@aws-sdk/client-s3");
 
 const app = express();
@@ -112,6 +113,34 @@ app.post(
 
   }
 );
+
+app.delete("/files/:key", async (req, res) => {
+  try {
+    const key = req.params.key;
+
+    const command = new DeleteObjectCommand({
+      Bucket: process.env.SPACES_BUCKET,
+      Key: key
+    });
+
+    await s3.send(command);
+
+    res.json({
+      success: true,
+      message: "File deleted",
+      key
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
+});
+
 
 app.listen(3000, () => {
   console.log("Server running");
