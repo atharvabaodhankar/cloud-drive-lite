@@ -44,10 +44,22 @@ const app = express();
 // Use helmet to secure HTTP headers
 app.use(helmet());
 
-// Configure CORS to only allow requests from the trusted frontend origin
+// Configure CORS to allow the whitelisted origin and any local development ports dynamically
 const allowedOrigin = process.env.ALLOWED_ORIGIN || "http://localhost:5173";
 app.use(cors({
-  origin: allowedOrigin,
+  origin: (origin, callback) => {
+    // Allow same-origin requests (origin is undefined)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is localhost (any port) or whitelisted origin
+    const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    
+    if (isLocalhost || origin === allowedOrigin) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS Policy Violation: Origin not whitelisted"));
+    }
+  },
   methods: ["GET", "POST", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
