@@ -17,9 +17,6 @@ services:
     container_name: clouddrive-backend
     ports:
       - "3000:3000"
-    environment:
-      - DB_HOST=postgres
-      - ALLOWED_ORIGIN=http://localhost:5173
     env_file:
       - ./backend/.env
     depends_on:
@@ -30,7 +27,7 @@ services:
     build:
       context: ./frontend
       args:
-        - VITE_API_URL=http://localhost:3000
+        - VITE_API_URL=/api
     container_name: clouddrive-frontend
     ports:
       - "5173:80"
