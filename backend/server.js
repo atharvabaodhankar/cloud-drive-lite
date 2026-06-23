@@ -69,6 +69,27 @@ app.use(cors({
   credentials: true
 }));
 
+// Unauthenticated Health Check Endpoint (Bypasses Rate Limiter to prevent false positives)
+app.get("/health", async (req, res) => {
+  try {
+    // Audit database connectivity
+    await pool.query("SELECT 1");
+    res.json({
+      status: "healthy",
+      database: "connected",
+      uptime: process.uptime(),
+      timestamp: new Date()
+    });
+  } catch (err) {
+    console.error("Health check error:", err);
+    res.status(503).json({
+      status: "unhealthy",
+      database: "disconnected",
+      error: err.message
+    });
+  }
+});
+
 // Apply Rate Limiter
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
