@@ -45,6 +45,7 @@ const s3 = new S3Client({
 });
 
 const app = express();
+app.set("trust proxy", 1);
 
 // Parse JSON request payloads
 app.use(express.json());
