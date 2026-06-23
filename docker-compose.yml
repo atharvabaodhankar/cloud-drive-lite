@@ -2,12 +2,13 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: clouddrive-postgres
-    ports:
-      - "5432:5432"
+    expose:
+      - "5432"
     environment:
       POSTGRES_DB: clouddrive
       POSTGRES_USER: clouddrive_user
       POSTGRES_PASSWORD: clouddrive_password
+      POSTGRES_HOST_AUTH_METHOD: md5
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
@@ -20,8 +21,8 @@ services:
   backend:
     build: ./backend
     container_name: clouddrive-backend
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     env_file:
       - ./backend/.env
     depends_on:
