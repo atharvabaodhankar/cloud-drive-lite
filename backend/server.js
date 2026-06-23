@@ -640,28 +640,30 @@ app.post(
 );
 
 // Secure File Deletion
-app.delete("/files/:key", authenticateToken, async (req, res) => {
+app.delete("/files/:id", authenticateToken, async (req, res) => {
   try {
-    const key = req.params.key;
-    if (!key) {
+    const id = req.params.id;
+    if (!id) {
       return res.status(400).json({
         success: false,
-        error: "File key is required."
+        error: "File ID is required."
       });
     }
 
     // Verify ownership of the file before removing it
-    const fileQuery = "SELECT * FROM files WHERE storage_key = $1 AND user_id = $2";
-    const fileCheck = await pool.query(fileQuery, [key, req.user.id]);
+    const fileQuery = "SELECT * FROM files WHERE id = $1 AND user_id = $2";
+    const fileCheck = await pool.query(fileQuery, [id, req.user.id]);
     
     if (fileCheck.rows.length === 0) {
-      return res.status(403).json({
+      return res.status(404).json({
         success: false,
-        error: "Unauthorized access: You do not own this file."
+        error: "Unauthorized access: You do not own this file or it does not exist."
       });
     }
 
-    const filename = fileCheck.rows[0].filename;
+    const file = fileCheck.rows[0];
+    const key = file.storage_key;
+    const filename = file.filename;
 
     // 1. Delete from DigitalOcean Spaces
     const command = new DeleteObjectCommand({
@@ -671,7 +673,7 @@ app.delete("/files/:key", authenticateToken, async (req, res) => {
     await s3.send(command);
 
     // 2. Delete metadata from Database
-    await pool.query("DELETE FROM files WHERE storage_key = $1 AND user_id = $2", [key, req.user.id]);
+    await pool.query("DELETE FROM files WHERE id = $1 AND user_id = $2", [id, req.user.id]);
 
     // 3. Log Activity
     await logActivity(req.user.id, `Deleted file: ${filename}`);
@@ -679,7 +681,7 @@ app.delete("/files/:key", authenticateToken, async (req, res) => {
     res.json({
       success: true,
       message: "File deleted securely.",
-      key
+      id
     });
 
   } catch (err) {
@@ -692,11 +694,11 @@ app.delete("/files/:key", authenticateToken, async (req, res) => {
 });
 
 // Secure Download Endpoint (Logs activity, then redirects)
-app.get("/files/download/:key", authenticateToken, async (req, res) => {
+app.get("/files/download/:id", authenticateToken, async (req, res) => {
   try {
-    const key = req.params.key;
+    const id = req.params.id;
     
-    const fileRes = await pool.query("SELECT * FROM files WHERE storage_key = $1 AND user_id = $2", [key, req.user.id]);
+    const fileRes = await pool.query("SELECT * FROM files WHERE id = $1 AND user_id = $2", [id, req.user.id]);
     if (fileRes.rows.length === 0) {
       return res.status(404).json({ success: false, error: "File not found or unauthorized." });
     }
@@ -709,7 +711,7 @@ app.get("/files/download/:key", authenticateToken, async (req, res) => {
     // Generate S3 presigned URL
     const getCommand = new GetObjectCommand({
       Bucket: process.env.SPACES_BUCKET,
-      Key: key
+      Key: file.storage_key
     });
     const downloadUrl = await getSignedUrl(s3, getCommand, { expiresIn: 3600 });
 

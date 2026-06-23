@@ -446,11 +446,11 @@ export default function App() {
   };
 
   // Securely delete file
-  const deleteFile = async (key) => {
+  const deleteFile = async (id) => {
     if (!token) return;
-    setDeletingKeys((prev) => ({ ...prev, [key]: true }));
+    setDeletingKeys((prev) => ({ ...prev, [id]: true }));
     try {
-      const response = await authenticatedFetch(`${API_URL}/files/${encodeURIComponent(key)}`, {
+      const response = await authenticatedFetch(`${API_URL}/files/${id}`, {
         method: 'DELETE'
       });
 
@@ -463,7 +463,7 @@ export default function App() {
       const data = await response.json();
       if (data.success) {
         showToast('File deleted securely.', 'success');
-        setFiles((prev) => prev.filter((file) => file.key !== key));
+        setFiles((prev) => prev.filter((file) => file.id !== id));
         loadActivities();
       } else {
         showToast(data.error || 'Deletion failed.', 'error');
@@ -472,22 +472,22 @@ export default function App() {
       console.error(err);
       showToast('Error connecting to delete file.', 'error');
     } finally {
-      setDeletingKeys((prev) => ({ ...prev, [key]: false }));
+      setDeletingKeys((prev) => ({ ...prev, [id]: false }));
     }
   };
 
   // Copy URL with clipboard
-  const copyLink = (url, key) => {
+  const copyLink = (url, id) => {
     navigator.clipboard.writeText(url);
-    setCopiedKey(key);
+    setCopiedKey(id);
     showToast('Secure S3 presigned URL copied.', 'success');
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
   // Download Route Trigger (logs download activity)
-  const triggerDownload = async (key) => {
+  const triggerDownload = async (id) => {
     try {
-      const response = await authenticatedFetch(`${API_URL}/files/download/${encodeURIComponent(key)}`);
+      const response = await authenticatedFetch(`${API_URL}/files/download/${id}`);
       const data = await response.json();
       if (data.success && data.downloadUrl) {
         // Open download link in new window/tab
@@ -1213,11 +1213,11 @@ export default function App() {
                     >
                       <AnimatePresence mode="popLayout">
                         {filteredFiles.map((file) => {
-                          const isDeleting = deletingKeys[file.key] || false;
+                          const isDeleting = deletingKeys[file.id] || false;
 
                           return (
                             <motion.div
-                              key={file.key}
+                              key={file.id}
                               layout
                               initial={{ opacity: 0, y: 15 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -1250,11 +1250,11 @@ export default function App() {
                                 
                                 {/* Copy secure presigned S3 url */}
                                 <button
-                                  onClick={() => copyLink(file.url, file.key)}
+                                  onClick={() => copyLink(file.url, file.id)}
                                   className="flex-grow flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-zinc-950 border border-zinc-900 hover:border-zinc-700 text-xs font-medium text-zinc-400 hover:text-white transition-all duration-300"
                                   title="Copy temporary presigned URL"
                                 >
-                                  {copiedKey === file.key ? (
+                                  {copiedKey === file.id ? (
                                     <>
                                       <Check className="w-3.5 h-3.5 text-white animate-scale" />
                                       <span className="text-white">Copied!</span>
@@ -1269,7 +1269,7 @@ export default function App() {
 
                                 {/* Direct Secure Download with activity logging */}
                                 <button
-                                  onClick={() => triggerDownload(file.key)}
+                                  onClick={() => triggerDownload(file.id)}
                                   className="w-10 h-9 rounded-lg bg-zinc-950 border border-zinc-900 hover:border-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-all duration-300"
                                   title="Secure Audit Download"
                                 >
@@ -1278,7 +1278,7 @@ export default function App() {
 
                                 {/* Secure Delete */}
                                 <button
-                                  onClick={() => deleteFile(file.key)}
+                                  onClick={() => deleteFile(file.id)}
                                   disabled={isDeleting}
                                   className="w-10 h-9 rounded-lg bg-zinc-950 border border-zinc-900 hover:border-red-900 hover:bg-red-950/20 text-zinc-500 hover:text-red-400 flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                                   title="Secure Delete"
