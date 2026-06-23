@@ -5,7 +5,8 @@ const multer = require("multer");
 
 const {
   S3Client,
-  PutObjectCommand
+  PutObjectCommand,
+  ListObjectsV2Command
 } = require("@aws-sdk/client-s3");
 
 const app = express();
@@ -38,6 +39,35 @@ app.get("/", (req, res) => {
       </button>
     </form>
   `);
+});
+app.get("/files", async (req, res) => {
+  try {
+    const command = new ListObjectsV2Command({
+      Bucket: process.env.SPACES_BUCKET
+    });
+
+    const data = await s3.send(command);
+
+    const files = (data.Contents || []).map(file => ({
+      key: file.Key,
+      size: file.Size,
+      lastModified: file.LastModified
+    }));
+
+    res.json({
+      success: true,
+      count: files.length,
+      files
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
+  }
 });
 
 app.post(
